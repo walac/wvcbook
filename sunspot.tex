@@ -1,0 +1,862 @@
+\documentclass{omnibook4b}
+\usepackage{url}
+\usepackage{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Formato Latex2e para capítulo de livro - OMNIPAX EDITORA
+%% Versão 4 @ 2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%% CABEÇALHO DO CAPÍTULO 
+
+\chaptertitle{Detecção de Manchas Solares\\Utilizando Morfologia Matemática}
+
+
+\authors{Adílson Eduardo Spagiari, Israel Florentino dos Santos,
+Wander Lairson Costa, Adriana Válio e Maurício Marengoni
+\thanks{Autor para contato: mmarengoni@mackenzie.br}}
+\affiliation{}
+\country{}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%% RESUMO, ABSTRACT e PALAVRAS-CHAVE
+\begin{document}
+\renewcommand{\abstractname}{}
+\maketitle
+\pagestyle{corpocapitulo}
+\thispagestyle{paginarosto}
+
+\vfill
+\begin{abstract}
+\small \noindent \textbf{Resumo:} Este capítulo descreve o algoritmo MACK
+para detecção de manchas no disco solar, o qual foi elaborado por meio de
+modificações no algoritmo de Curto. Além da apresentação da importância
+da detecção de manchas solares e das dificuldades relacionadas ao processo
+de detecção automática, são descritos os dois algoritmos, apontando as
+modificações realizadas. O algoritmo MACK foi aplicado às imagens do
+observatório SOHO e os resultados foram comparados com os dados publicados
+pelo NOAA Institute e pelo SIDC. A alta correlação entre os dados obtidos
+pelos autores e os provenientes dessas instituições apontou consistência
+dos resultados, sendo que as alterações realizadas no algoritmo original
+sugerem um aperfeiçoamento da robustez do método.
+
+\vspace*{10pt} \noindent \textbf{Palavras-chave:} Processamento de imagens,
+Visão Computacional, Manchas Solares.
+
+\vspace*{10pt} \noindent \emph{\textbf{Abstract:} This chapter describes the
+use of the Curto's algorithm for sunspot detection on the solar
+disk applied to SOHO images. The importance of sunspot detection and its
+related difficulties are presented followed by a description of the Curto's
+algorithm as well as the changes performed in SOHO images. The results obtained
+with the algorithm of Curto are compared with the published
+data by the NOAA Institute and SIDC. This comparison showed the results
+consistency, having reached a high data correlation with the observations.
+Furthermore, the changes made to the original algorithm seemed to improve the
+method robustness.}
+
+\vspace*{10pt} \noindent \emph{\textbf{Keywords:} Image processing, Computer
+Vision, Sunspots.}
+
+\normalsize \vspace{10pt}
+\end{abstract}
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CORPO PRINCIPAL DO TEXTO
+
+\section{Introdução}\label{sec:introduction}
+	
+A fragilidade da vida humana é evidenciada principalmente em ambientes
+desfavoráveis e, neste sentido, a previsão do clima espacial busca elucidar
+diferentes processos físicos solares e suas consequências para a vida na Terra.
+Alterações no campo magnético global, campos elétricos induzidos e correntes
+podem afetar a operação de sistemas
+terrestres, dentre eles, redes de transmissão de alta tensão, gasodutos, cabos
+de telecomunicações, sinalização ferroviária, sistemas de comunicação sem fio
+e satélites \citep{colak2007}, os quais podem colocar em risco a saúde e
+vidas humanas.
+
+As manchas solares são áreas escuras com intenso campo magnético que crescem
+e decaem na fotosfera,
+camada mais baixa do Sol visível a partir da Terra. As manchas solares são
+mais escuras que os seus arredores porque são mais frias em relação à
+temperatura média da superfície solar. O seu aparecimento e desaparecimento
+ocorrem devido às mudanças subjacentes nos campos magnéticos que existem no
+Sol. A presença destes fortes campos magnéticos revela a existência de
+grandes quantidades de energia que potencialmente podem ser liberadas
+\citep{silva2006} gerando explosões solares e
+ejeções de massa que são responsáveis pelos distúrbios causados na
+Terra. Geralmente, as manchas solares são primeiramente
+observadas como pequenos pontos escuros denominados poros, os quais podem
+se desenvolver como regiões de manchas solares, evoluindo em horas ou em
+dias. Ocasionalmente, quando um ponto se torna mais escuro e maior, ele
+pode se romper do ponto original e, neste cenário, apresenta-se a razão
+para a contagem total de manchas solares e a classificação dessas em
+grupos \citep{curto2008}.
+
+A identificação e a classificação de manchas solares, incluindo sua localização,
+tempo de vida, contraste, entre outros, constituem elementos essenciais na
+modelagem da irradiância total durante o ciclo solar, os quais são requisitos
+para um estudo quantitativo.
+
+A análise do comportamento das manchas solares também é utilizada no estudo de
+regiões ativas e na previsão da atividade de explosão solar \citep{zharkov2005}.
+Logo, o aumento substancial de dados contendo informações referentes às imagens
+solares, à detecção automatizada e à verificação de diferentes características de
+interesse, dentre outras aplicações, permitem uma previsão confiável da atividade
+solar e, portanto, da previsão do clima espacial \citep{zharkov2004}.
+
+Em física solar e, especialmente em geofísica, índices solares
+são de vital importância para avaliar o impacto potencial da atividade
+solar na Terra e em veículos espaciais. O número de manchas solares é o
+índice utilizado no estudo a longo prazo das variações de atividade
+solar, assim como nos estudos das relações solares terrestres. O
+número relativo de manchas solares
+foi definido por Rudolf Wolf \citep{wolf1856}, sendo $R = k(10g + s)$,
+onde $g$ é o número de grupos de manchas solares, $s$ é o número total de
+``pontos" em todos os grupos no disco visível, e $k$ é um fator de correção
+de erros de observação em função do equipamento utilizado \citep{svalgaard2010}.
+
+Em 2005, \citet{zharkov2005} apresentaram técnicas para reconhecimento
+automático de manchas presentes no disco em imagens solares. A técnica
+apresentada se resume nos seguintes passos \citep{zharkov2005}:
+
+\begin{enumerate}
+\item aplicar uma suavização gaussiana com uma vizinhança $5 \times 5$
+seguida por um operador de Sobel para uma cópia $\Delta$ da imagem;
+
+\item utilizando um valor de limiar inicial, $T_0$, binarizar o mapa de bordas
+e aplicar um filtro de mediana $5 \times 5$ ao resultado. Em seguida, contar
+o número de componentes conexos, $N_c$, e a taxa do número de pixels de
+borda para o número total de pixels do disco solar, $R$. Se $N_c$ for maior
+que 250 ou $R$ maior que 0.7, incrementar $T_0$ e repetir o passo 2;
+
+\item binarizar iterativamente a imagem original para definir
+menos de 100 regiões escuras. Combinar as duas imagens binárias dentro
+de um mapa binário de caractecterísticas candidatas;
+
+\item remover a borda correspondente ao limbo do mapa de manchas candidatas e
+preencher as possíveis lacunas nas características de contorno utilizando
+os operadores morfológicos de fechamento e \textit{watershed};
+
+\item utilizar uma coloração por \textit{blobs} para definir uma região de interesse,
+$F_i$, como um conjunto de pixels representando um componente conexo
+na imagem binária resultante, $\overline{B}_{\Delta}$;
+
+\item criar um mapa de manchas solares candidatas, $B_{\Delta}$, uma máscara
+de byte a qual conterá os resultados da detecção com os pixels pertencentes
+à umbra marcados como 2, e à penumbra marcados como 1.
+
+\item para cada $F_i$ uma imagem cortada contendo $F_i$ definir $T_s$ e
+$T_u$:
+
+\begin{enumerate}[I]
+\item se $|F_i| \le 5$ pixels associar os limiares:
+
+\begin{center}
+para penumbra: $T_s = 0.91 I_{QSun}$, para umbra $T_u = 0.6 I_{QSun}$
+\end{center}
+
+\item Se $|F_i| \ge 5$ pixels associar os limiares:
+
+\begin{center}
+para penumbra: $T_s = max\{0.93 I_{QSun}; (<F_i>-0.5\Delta F_I)\}$;
+
+para umbra: $T_u = max\{0.55 I_{QSun}; (<F_i>-\Delta F_i)\}$
+\end{center}
+\end{enumerate}
+onde: $<F_i>$ é a intensidade média e $\Delta F_i$ é o desvio padrão para $F_i$;
+
+\item binarizar a imagem cortada neste valor para definir os pixels candidatos
+(umbral/penumbral) e inserir os resultados novamente em $B_{\Delta}$. Em
+seguida, utilizar a coloração de \textit{blob} para definir uma mancha solar
+candidata, $S_i$ com os conjuntos de pixels representando um componente
+conexo em $B_{\Delta}$;
+
+\item verificar os resultados de detecção, sobrepondo o $B_{\Delta}$ com o
+magnetograma sincronizado, $M$, como segue:
+
+para cada mancha candidata $S_i$ de $B_{\Delta}$ extrair
+
+$B_{max}(S_i) = max(M(p)|p \in S_i)$
+
+$B_{min}(S_i) = min(M(p)|p \in S_i)$
+
+se $max(abs(B_{max}(S_i)),abs(B_{min}(S_i))) < 100$ então descarte $S_i$
+como ruído;
+
+\item para cada $S_i$ extrair e armazenar os seguintes parâmetros: coordenadas
+do centro de gravidade, área, diâmetro, tamanho da umbra, número de umbras
+detectadas, intensidades fotométricas: máxima, mínima e média, fluxos
+magnéticos: máximo, mínimo e médio, fluxo magnético total e fluxo umbral total.
+\end{enumerate} 
+
+Em 2007, \citet{colak2007} discutiram a classificação automática das
+manchas solares em tempo real para previsão de atividade solar. O
+método descrito por eles foi divido em três etapas \citep{colak2007}:
+
+\begin{enumerate}[(a)]
+\item aplicação de um processo de filtragem descrito em \citep{colak2006} e
+cálculo das coordenadas solares.
+
+\item detecção inicial de manchas solares a partir de imagens contínuas, e
+detecção de regiões ativas a partir do magnetograma.
+
+\item agrupamento de manchas solares utilizando aprendizado de máquina
+por meio de Redes Neurais Artificais.
+\end{enumerate}
+
+No ano seguinte, em 2008, \citet{curto2008} apresentaram suas
+técnicas com o uso de morfologia matemática para detecção automática de
+manchas solares em imagens na faixa visível do disco solar, aplicando
+seus algoritmos às imagens do observatório Ebro e comparando os seus
+resultados aos dados disponibilizados pelo SFC (Solar Feature Catalog),
+instituto europeu de controle de atividades solares.
+
+O SOHO (\textit{Solar \& Heliospheric Observatory}), lançado em 2 de Dezembro
+de 1995, é um projeto de colaboração internacional entre a ESA e a NASA para
+estudo do Sol a partir do seu núcleo até sua corona mais externa, assim como o
+vento solar. O veículo solar SOHO foi construído na Europa por um conjunto de
+indústrias liderado por \emph{Matra Marconi Space} (atualmente
+\textit{EADS Astrium}) sob o gerenciamento global da ESA. Os doze instrumentos
+a bordo do SOHO foram fornecidos por cientistas da América e Europa.
+A NASA foi a responsável pelo seu lançamento e, atualmente, pelas
+operações em missões. Grandes antenas de rádio espalhadas ao redor do mundo,
+as quais formam a Rede Espacial da NASA, são utilizadas para download
+de dados e comandos. O controle de missão é baseado no
+\emph{Goddard Space Flight Center} em Maryland
+\footnote{\url{http://sohowww.nascom.nasa.gov/about/about.html}}.
+
+Diante desse contexto, este trabalho apresenta uma versão modificada do
+algoritmo de detecção de \citet{curto2008} adaptada para as imagens
+solares na faixa visível do observatório SOHO (Solar and Heliospheric
+Observatory), denominada algoritmo Mack. As operações morfológicas
+relevantes para este artigo são brevemente discutidas na seção
+\ref{sec:morph}. A técnica de
+\citet{curto2008} para descrição e agrupamento e as modificações feitas
+em seu algoritmo são descritas nas seções \ref{sec:detect} e
+\ref{sec:group}, respectivamente. A técnica de agrupamento utiliza o mesmo
+princípio de \citet{curto2008}: as manchas solares são agrupadas com base em
+suas distâncias heliográficas uma em relação à outra. A seção \ref{sec:group}
+detalha o método empregado para converter as coordenadas cartesianas em
+coordenadas heliográficas. A seção \ref{sec:result} apresenta os
+resultados da comparação dos dados com os apresentados por \citet{curto2008}
+para detecção, assim como expõe os resultados de atividade solar com os
+dados obtidos ao longo dos anos de 2001 e 2009, comparando-os com os dados oficiais
+dos Institutos NOAA (National Oceanic and Atmospheric Administration) e
+SIDC (Solar Influences Data Center). Por fim, a seção \ref{sec:conclude}
+apresenta a conclusão deste trabalho.
+
+\section{Operações Morfológicas}\label{sec:morph}
+
+A Morfologia Matemática, no contexto de processamento de imagens, é
+utilizada para analisar e extrair características geométricas das
+imagens, além de permitir operações de pré e pós processamentos destas,
+por exemplo, a filtragem morfológica.
+
+As operações morfológicas são baseadas na teoria dos conjuntos. Em imagens
+binárias, os conjuntos em questão são membros do espaço 2-D de números
+inteiros $Z^2$, em que cada elemento de um conjunto é um vetor
+bidimensional, cujas coordenadas são $(x,y)$ de um pixel branco (ou
+preto, dependendo da convenção) de uma imagem. As imagens digitais
+em níveis de cinza podem ser representadas como conjuntos, cujos componentes
+estão em $Z^3$. Neste caso, dois componentes de cada elemento do conjunto
+referem-se às coordenadas de um pixel, e o terceiro corresponde ao seu valor
+discreto de intensidade. Um conceito fundamental da morfologia é o de
+\emph{elemento estruturante} (ES): pequenos conjuntos ou subimagens utilizadas
+para examinar uma imagem, com o objetivo de identificar propriedades de
+interesse \citep{gonzalez2010}. A Figura \ref{fig:struct} exibe exemplos
+de elementos estruturantes.
+
+\begin{figure}[!htbp]
+\begin{center}
+\includegraphics[scale=0.3]{img/elemento-estruturante}
+\caption{Primeira linha: exemplos de elementos estruturantes. Segunda
+linha: elementos estruturantes convertidos em arranjos retangulares
+\citep{gonzalez2010}}.
+\label{fig:struct}
+\end{center}
+\end{figure}
+
+A seguir são apresentadas as operações morfológicas relevantes para este
+trabalho. Embora a morfologia tenha sido inicialmente aplicada em imagens
+binárias, as operações aqui descritas foram aplicadas em imagens em
+nível de cinza.
+
+\subsection{Erosão e dilatação}
+
+Seja $f(x,y)$ uma imagem bidimensional e $b$ o elemento estruturante,
+a erosão de $f$ por $b$ é dada por:
+
+\begin{equation}
+f \ominus b (x,y) = \mbox{min}\{f(x+s,y+t)\}_{(s,t) \in b_N}
+\end{equation}
+
+A erosão de um ponto $(x,y)$ é o valor mínimo dentre os pontos vizinhos
+de $(x,y)$ que estão dentro do elemento estruturante $b$. A dilatação, por
+outro lado, sendo uma operação dual à erosão \citep{gonzalez2010}, tem o
+efeito de aumentar as partes mais claras da imagem. A dilatação é dada por:
+
+\begin{equation}
+f \oplus b (x,y) = \mbox{max}\{f(x+s,y+t)\}_{(s,t) \in b_N}
+\end{equation}
+
+A dilatação de um ponto $(x,y)$ é o valor máximo dentre os pontos
+vizinhos de $(x,y)$ que estão dentro do elemento estruturante $b$.
+
+\subsection{Abertura e fechamento}
+
+Sendo $f(x,y)$ a imagem e $b$ o elemento estruturante, a abertura e o
+fechamento são dados, respectivamente, por:
+
+\begin{equation}
+f \circ b = (f \ominus b) \oplus b
+\end{equation}
+
+\begin{equation}
+f \bullet b = (f \oplus b) \ominus b
+\end{equation}
+
+A abertura é uma erosão seguida de uma dilatação, enquanto o fechamento
+é uma dilatação seguida de erosão. A abertura remove pequenas partes
+claras da imagem com mínima distorção das partes escuras. De modo
+análogo, o fechamento remove partes escuras com mínima distorção das
+partes claras.
+
+A abertura geralmente suaviza o contorno de um objeto, rompe os istmos e
+elimina as saliências finas. O fechamento também tende a suavizar contornos,
+mas, ao contrário da abertura, geralmente funde as descontinuidades estreitas
+e alonga os golfos finos, elimina pequenos buracos e preenche as lacunas em
+um contorno \citep{gonzalez2010}.
+
+\subsection{Transformadas \textit{top-hat} e \textit{bottom-hat}}
+
+As transformadas \emph{top-hat} e \emph{bottom-hat} são geralmente
+utilizadas na remoção de objetos da imagem com base no
+elemento estruturante. A \textit{top-hat} atua sobre objetos claros
+com fundo escuro, enquanto a \textit{bottom-hat} atua sobre
+objetos escuros com fundo claro. Abaixo são apresentadas
+as descrições das transformadas \textit{top-hat} e \textit{bottom-hat}:
+
+\begin{equation}
+T(f) = f - (f \circ b)
+\end{equation}
+
+\begin{equation}
+T(f) = (f \bullet b) - f
+\end{equation}
+
+Uma das principais aplicações dessas transformadas é a remoção de uma
+imagem fazendo uso de um elemento estruturante na operação de abertura ou de
+fechamento que não se encaixa nos objetos a serem removidos. A operação de
+diferença resulta em uma imagem na qual apenas os componentes removidos
+permanecem \citep{gonzalez2010}.
+
+\section{Detecção de manchas solares}\label{sec:detect}
+
+A superfície do Sol apresenta uma distribuição de estruturas com diferentes
+níveis de intensidades e padrões regulares indefinidos, conforme se
+apresenta na Figura \ref{fig:orig}.
+
+Geralmente cada estrutura escura é considerada como uma mancha solar e,
+sua identificação, envolve um processo de segmentação da imagem em escala
+de cinza do Sol, como nas imagens mostradas nas
+Figuras \ref{fig:orig} e \ref{fig:zoom}. Segundo \citet{curto2008},
+em um primeiro momento, existem três processos de segmentação:
+detecção de borda, crescimento de região e binarização. A
+técnica a ser descrita neste artigo, algoritmo Mack, utiliza
+o processo de binarização. Entretanto, ao aplicar um
+sistema global de binarização, este produz histogramas
+não particionáveis em decorrência da variação de
+intensidade da imagem do disco solar, ou seja, o 
+escurecimento do limbo solar \citep{zharkov2005}. Este fenômeno, o 
+escurecimento do limbo solar, ocorre porque o brilho é 
+máximo na faixa visível localizada no centro do disco e decai 
+aproximadamente 20\% nas bordas em função do gradiente positivo de
+temperatura da atmosfera solar. Logo, camadas mais próximas à
+superfície, as quais são mais frias, são menos brilhantes \citep{silva2006}. 
+
+Estruturas escuras na imagem são consideradas manchas candidatas, uma vez
+que podem se tratar de ruídos e não de manchas solares. Para distinguir
+uma mancha solar de um ruído, tem-se de considerar duas características:
+o tamanho da mancha candidata e o quão escura ela é. Espacialmente, quanto
+maior a mancha candidata, maior a probabilidade de ser uma mancha solar
+e, quanto menor, maior a probabilidade de ser um ruído. No histograma
+de cor, quanto mais escura a mancha candidata, maior a probabilidade de
+ser uma mancha solar e, quanto mais clara, maior a probabilidade de ser
+um ruído. O algoritmo atua de forma iterativa para encontrar um tamanho de
+elemento estruturante que elimine espacialmente o maior número de ruídos e,
+ao mesmo tempo, minimize a eliminação de manchas verdadeiras. O algoritmo
+também atua para encontrar um ponto de corte ótimo no processo de binarização,
+visando sempre maximizar a eliminação de ruídos e minimizar a eliminação de manchas.
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.3]{img/OriginalSunspot}
+    \caption{Imagem original com manchas, SOHO}
+    \label{fig:orig}
+  \end{center}
+\end{figure}
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=1]{img/ZoomSunspot}
+    \caption{Manchas solares ampliadas}
+    \label{fig:zoom}
+  \end{center}
+\end{figure}
+
+A técnica descrita por \citet{curto2008} consiste na
+aplicação de um procedimento utilizando a binarização
+iterativa, assim como em \citet{zharkov2005}. Contudo, em
+\citet{curto2008}, as manchas solares candidatas são obtidas
+aplicando um procedimento que envolve somente dois
+laços iterativos na imagem original, sendo um
+incrementando o tamanho do elemento estruturante da
+operação de fechamento e o outro incrementando o nível
+de intensidade, enquanto o crescimento da população dos
+pixels da mancha solar está sendo controlado.
+
+A detecção da totalidade de pixels verdadeiros
+pertencentes a uma mancha solar utiliza um método
+iterativo, o qual incrementa a escala de escopo a cada
+repetição. Novamente uma dificuldade surge. Existe uma
+larga variedade de tamanhos nas manchas solares. A
+priori, não se sabe o tamanho da maior mancha do disco
+solar em uma imagem em particular. Assim, as iterações
+devem continuar até a população de pixels a serem
+detectados estabilizar. Neste ponto, quando estabilizados,
+todos os pixels pertencentes às manchas solares estão
+detectados.
+
+Para ser aplicada às imagens do observatório SOHO, a
+técnica de \citet{curto2008} foi modificada para eliminar
+ruídos e produzir maior robustez contra o efeito de
+escurecimento do limbo. Assim, aplica-se a operação \textit{bottom-hat},
+Figura \ref{fig:bottomhat}, em detrimento da operação \textit{top-hat}
+utilizada por \citet{curto2008}. Este método inverte a imagem, sendo que
+o fundo se torna escuro e as manchas tendem ao branco.
+No processo original de binarização, inicia-se com um
+valor de corte, o qual inicialmente detecta somente os pixels
+mais escuros da imagem, e o valor de corte é iterativamente incrementado
+até ocorrer um crescimento abrupto no número de pixels, quando é detectado
+o fundo da imagem.
+
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.3]{img/BottomHat}
+    \caption{Imagem após operação bottom-hat}
+    \label{fig:bottomhat}
+  \end{center}
+\end{figure}
+
+
+A presente proposta visa controlar os pixels detectados
+como pertencentes às manchas solares e interromper o
+processo quando o seu número estabilizar. O número de 
+pixels com valor branco após a binarização na iteração 
+$n$ é $P_n$, assim, interrompe-se o processo quando
+$P_{n-1}-P_n < q$, onde $q$ representa um ponto de corte
+na taxa de decaimento de pixels. Diante disso, o processo
+finaliza quando a taxa de decaimento de pixels detectados
+tende a zero (Figura \ref{fig:bin}).
+Porém, impondo o valor zero, é possível que eventuais
+manchas que se sobreponham a alguns pontos de ruído no
+histograma de cor sejam eliminadas durante a binarização.
+Logo, a solução encontrada para este problema foi relaxar
+esta imposição, tornando $q$ um valor maior que zero. Isso
+evita falsos negativos durante o processo de binarização,
+mas aumenta a probabilidade de ocorrência de falsos
+positivos. Entretanto, os resultados obtidos indicam que o
+aumento desta probabilidade de falsos positivos é, em
+geral, desprezível, mas a diminuição de falsos negativos é
+significante. Ruídos são em geral espacialmente menores
+que as manchas, logo, após o processo de segmentação
+completo, efetua-se uma abertura morfológica na imagem
+para eliminar ruídos remanescentes.
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.3]{img/Bin}
+    \caption{Imagem binarizada}
+    \label{fig:bin}
+  \end{center}
+\end{figure}
+
+Após a binarização, o tamanho do elemento
+estruturante é incrementado e o processo se repete. O
+elemento estruturante de tamanho ótimo é determinado
+quando a população de pixels detectada se estabiliza \citep{curto2008}
+ou, para alguns casos observados, decresce. \citet{curto2008}
+utilizaram um tamanho inicial de elemento estruturante
+7x7. Para as imagens do SOHO foi utilizado neste
+trabalho um tamanho 3x3, com a âncora centralizada e
+formato de elipse. Para manter a âncora do elemento
+estruturante centralizada, os incrementos de tamanho foram
+feitos em passos de duas unidades. No final, conforme
+mencionado, aplicou-se uma abertura morfológica com
+tamanho do elemento estruturante igual a dois.
+
+Em seguida à segmentação, há a necessidade de contar
+a quantidade de manchas detectadas. Neste trabalho, foi
+utilizado o algoritmo de crescimento de região para
+identificação dos \textit{blobs} \citep{gonzalez2010},
+sendo que cada \textit{blob} tem seu
+centro geométrico calculado e todas as informações
+extraídas dos \textit{blobs} são armazenadas em estruturas de
+dados vetorizadas, na qual cada \textit{blob} possui um
+identificador (ID). O algoritmo completo de detecção de
+manchas está resumido na Figura \ref{fig:detect}.
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.25]{img/DetectionAlgorithm}
+    \caption{Algoritmo de detecção de manchas}
+    \label{fig:detect}
+  \end{center}
+\end{figure}
+
+O valor 2 para a abertura morfológica ao final foi
+determinado experimentalmente, sendo observado que
+tamanhos estruturantes maiores tendiam a eliminar
+manchas de tamanhos reduzidos. Diante disso, não foi
+utilizado um tamanho ímpar para o elemento estruturante.
+
+Para este trabalho, utilizou-se o valor 40 para o
+parâmetro $q$, determinado experimentalmente. A obtenção deste
+valor se deu observando a quantidade de falsos positivos e falsos
+negativos para um subconjunto das imagens de referência, em relação
+aos resultados de \citep{curto2008}. Para um conjunto de imagens proveniente
+de outra fonte, possivelmente este parâmetro tenha de ser ajustado. 
+Uma vez detectadas as manchas, é necessário determinar sua
+localização na imagem. Para isso, conforme mencionado,
+aplica-se um algoritmo de detecção de \textit{blobs} utilizando
+crescimento de região. O algoritmo funciona percorrendo
+a imagem linha a linha, procurando por pixels brancos e
+vizinhos conexos. Quando um pixel branco é encontrado,
+verificam-se os pixels localizados imediatamente à sua esquerda e na
+parte superior na estrutura da imagem, a fim de se determinar se este pixel
+pertence a um \textit{blob} já existente. Em caso negativo, adiciona-se
+um novo blob ao conjunto de \textit{blobs}. Os pixels
+pertencentes a cada \textit{blob} são armazenados em uma
+estrutura de dados do tipo vetor para localização de
+manchas no algoritmo de agrupamento.
+
+\section{Agrupamento de manchas solares}\label{sec:group}
+
+No contexto de visão computacional, os resultados
+obtidos pelo algoritmo de detecção de manchas solares
+tornam-se subsídios para um novo processamento
+fundamentado nos conceitos de física solar e técnicas de
+astrofísica, a fim de se determinar o número de grupos e,
+por sua vez, o número de Wolf.
+
+As manchas solares formam grupos que compartilham
+propriedades físicas, tais quais as presentes na base de
+arcos coronais, os quais são estruturas curvilíneas
+alinhadas ao campo magnético \citep{silva2006}.
+
+O número de manchas individuais e o número de
+grupos são necessários para se determinar o nível de
+atividade solar, conforme o índice de Wolf \citep{wolf1856}. Duas
+manchas solares fazem parte do mesmo grupo se estão
+localizadas próximas e compartilham do mesmo arco de
+fluxo magnético, para isso utiliza-se o critério de
+proximidade espacial \citep{curto2008}. Neste contexto, estatisticamente
+define-se quais manchas solares fazem parte do mesmo
+grupo se estiverem até seis graus heliográficos
+equidistantes \citep{curto2008}.
+
+Para se determinar as distâncias entre as diferentes
+manchas solares, torna-se necessário converter a imagem
+de coordenadas cartesianas para coordenadas
+heliográficas \citep{green1985}. A detecção de grupos por proximidade
+se caracteriza por ser um processo computacionalmente
+simples e eficiente na classificação dos grupos, porém há
+certa dificuldade quando diferentes grupos estão dispostos
+próximos uns dos outros, principalmente por efeitos de
+projeção como nas proximidades do limbo solar.
+
+Neste trabalho, define-se o raio e o centro do limbo
+solar utilizando a imagem original posicionada sobre um
+círculo maior. Iterativamente, por meio da detecção de
+transições abruptas, centraliza e ajusta o raio do círculo
+maior até que suas características se aproximem das
+encontradas no limbo solar, respeitando uma tolerância
+($\Delta$) de no máximo três pixels. O algoritmo converge para
+a solução em no máximo três iterações.
+
+Definindo-se os valores de centro e raio do limbo solar
+($r$), transformam-se as coordenadas cartesianas $(x,y)$ das
+manchas solares em coordenadas heliográficas. Aplicam-se
+as equações \ref{eqn:lat} e \ref{eqn:lon} \citep{green1985} para o centro de
+cada mancha, a fim de encontrar sua localização longitude e latitudinal na
+esfera solar, sendo que o meridiano principal e do equador
+solar são respectivamente as linhas que cortam o limbo
+solar na vertical e na horizontal em referência ao
+observador. Com a conversão das coordenadas, a
+distância em graus pode ser aferida por meio da aplicação
+da equação \ref{eqn:lamb} \citep{green1985} nas manchas encontradas.
+
+\begin{equation}
+\mbox{Lat} = \arcsin \left(\frac{y}{r}\right)
+\label{eqn:lat}
+\end{equation}
+
+\begin{equation}
+\mbox{Lon} = \arcsin \left(\frac{x}{\sqrt{r^2+y^2}}\right)
+\label{eqn:lon}
+\end{equation}
+
+\begin{equation}
+\mbox{Lamb} = \arccos(\sin(\mbox{lat}_1) \sin(\mbox{lat}_2) +
+\cos(\mbox{lat}_1) \cos(\mbox{lat}_2) \cos(\mbox{lon}_2-\mbox{lon}_1))
+\label{eqn:lamb}
+\end{equation}
+
+Na Figura \ref{fig:group} é apresentado o fluxograma do algoritmo de detecção
+de grupos de manchas.
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.3]{img/GroupAlgorithm}
+    \caption{Algoritmo de detecção de grupos}
+    \label{fig:group}
+  \end{center}
+\end{figure}
+
+\section{Resultados}\label{sec:result}
+
+Este trabalho apresentou uma versão modificada do
+algoritmo de detecção de \citet{curto2008}, implementado
+em linguagem C++, utilizando a biblioteca de algoritmos
+de Visão Computacional OpenCV \citep{opencv}, adaptado para as
+imagens solares na faixa visível do observatório
+SOHO. A Figura \ref{fig:proc} mostra resumidamente o passos no processo
+de detecção e agrupamento.
+
+\begin{figure}[h]
+\begin{center}$
+\begin{array}{rcrc}
+(a) & \includegraphics[scale=0.1]{img/1-original} & (b) & \includegraphics[scale=0.1]{img/2-detect} \\
+(c) & \includegraphics[scale=0.1]{img/3-binary} & (d) & \includegraphics[scale=0.1]{img/4-group}
+\end{array}$
+\end{center}
+\caption{Processo de detecção e agrupamento das manchas solares. (a) imagem
+original com o círculo maior marcado (b) imagem binarizada pelo processo de detecção
+(c) imagem binária final (d) agrupamento.}
+\label{fig:proc}
+\end{figure}
+
+\subsection{Detecção de Manchas}\label{sec:resultDeteccaoManchas}
+
+\citet{curto2008}, para verificação dos resultados,
+aplicaram seu algoritmo às imagens do observatório Ebro e
+compararam os resultados de detecção aos dados
+disponibilizados pelo \textit{Solar Feature Catalog} (SFC), sendo
+que as imagens utilizadas datam de Maio de 2004. Neste
+trabalho foram utilizadas as imagens do satélite SOHO
+com as mesmas datas definidas por \citet{curto2008}.
+
+Convencionou-se para este trabalho que, quando eram
+disponibilizadas mais de uma imagem no mesmo dia no
+observatório SOHO, seria utilizada a imagem com o
+horário mais próximo ao meio dia. A Tabela \ref{tab:cmp} exibe os
+resultados desta comparação. Ressalta-se que algumas imagens presentes
+na tabela original de \citep{curto2008} em determinadas datas, não se
+encontravam disponíveis no site do laboratório SOHO.
+
+\begin{table}[htp]
+\begin{center}
+\caption{Número de manchas detectadas}
+\begin{tabular}{c c c c}
+\hline
+\textbf{Data} & \textbf{Mack} & \textbf{EBRO} & \textbf{SFC} \\
+\hline
+04/05/04 & 8 & 9 & 9 \\
+05/05/04 & 11 & 9 & 3 \\
+06/05/04 & 9 & 9 & 4 \\
+08/05/04 & 5 & 3 & 7 \\
+09/05/04 & 5 & 4 & 6 \\
+10/05/04 & 6 & 9 & 7 \\
+18/05/04 & 19 & 17 & 24 \\
+19/05/04 & 17 & 17 & 17 \\
+20/05/04 & 14 & 15 & 17 \\
+21/05/04 & 14 & 15 & 13 \\
+24/05/04 & 26 & 27 & 13 \\
+27/05/04 & 14 & 27 & 12 \\
+28/05/04 & 12 & 12 & 6 \\
+29/05/04 & 12 & 11 & 18 \\
+30/05/04 & 12 & 12 & 22 \\
+31/05/04 & 13 & 13 & 10 \\
+\textit{Total} & \textit{197} & \textit{210} & \textit{188} \\
+\hline
+\end{tabular}
+\label{tab:cmp}
+\end{center}
+\end{table}
+
+Nota-se, pelos resultados obtidos que, de forma geral,
+os dados apresentados por \citet{curto2008} e por este trabalho
+são consistentes. Em alguns pontos, por exemplo o dia
+27/05/2004, Curto et al. obtiveram um resultado
+discrepante com o SFC, enquanto o presente trabalho obteve um
+resultado mais próximo ao do SFC. Em outros casos,
+\citet{curto2008} e este trabalho apresentaram discrepância com
+relação ao SFC, embora o grau de discrepância
+apresentado pelo algoritmo Mack seja ligeiramente menor
+que o de Curto et al.. O coeficiente de correlação entre os
+dados do laboratório Ebro, utilizando o método original
+de \citet{curto2008}, e os resultados do SFC, foi de 46\%.
+Utilizando as imagens do observatório SOHO com as
+alterações realizadas no algoritmo de \citet{curto2008}, foi
+obtida uma correlação de 59\%. A correlação entre os
+resultados do algoritmo Mack e o de \citet{curto2008} foi de
+92\%.
+
+\subsection{Agrupamento de Manchas}\label{sec:resultAgrupamento}
+
+O agrupamento de manchas foi comparado com os resultados de
+agrupamento utilizando 350 imagens do ano de 2001 e 260 imagens
+do ano de 2009 do observatório SOHO com os dados divulgados pelos
+Institutos NOAA e o SIDC, em relação ao número de Wolf. O processamento
+automático de agrupamento resultou em uma correlação de aproximadamente
+79\% e 93\%, respectivamente, para o ano de 2001 e 63\% e 67\%,
+respectivamente, para o ano de 2009. A Figura \ref{fig:cmp} apresenta o
+gráfico de comparação dos resultados deste trabalho com os resultados dos
+institutos NOAA e SIDC para o ano de 2001 e a Figura \ref{fig:cmp2}
+mostra o mesmo gráfico para o ano de 2009.
+
+Nota-se, pelo gráfico do ano de 2001, que o algoritmo deste trabalho
+detecta menos grupos em relação aos dados divulgados pelo Instituto NOAA,
+porém os resultados estão muito próximos aos apresentados pelo SIDC.
+Tais diferenças, em relação ao Instituto NOAA, podem ser vistas com
+maior intensidade nos resultados dos meses de Abril, Outubro,
+Novembro e Dezembro.
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.45]{img/Compare1}
+    \caption{Comparação entre os algoritmos para o ano de 2001.}
+    \label{fig:cmp}
+  \end{center}
+\end{figure}
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.3]{img/Compare2}
+    \caption{Comparação entre os algoritmos para o ano de 2009.}
+    \label{fig:cmp2}
+  \end{center}
+\end{figure}
+
+Comparando as figuras \ref{fig:cmp} e \ref{fig:cmp2}, os resultados foram
+mais díspares para o ano de 2009 do que para o ano de 2001, uma vez que o
+ano de 2001 se caracterizou pela existência de poucas manchas em função do
+período do ciclo solar. Além disso, essas manchas foram espacialmente
+pequenas, o que ocasionou em um aumento da  probabilidade de manchas se
+confundirem com ruídos. Na prática, o que houve foi que mais ruídos foram
+erroneamente detectados como manchas. A Figura \ref{fig:2009} mostra uma
+imagem do ano de 2009 do observatório SOHO. É possível observar que as
+manchas solares são quase imperceptíveis.  Isso se deve ao fato que o Sol
+estava em um período de mínima atividade enquanto em 2001, a atividade
+solar se encontrava próxima ao máximo do ciclo solar de 11 anos.
+
+\begin{figure}[!htbp]
+  \begin{center}
+    \includegraphics[scale=0.2]{img/2009}
+    \caption{Imagem do observatório SOHO do ano de 2009.}
+    \label{fig:2009}
+  \end{center}
+\end{figure}
+
+\section{Conclusões}\label{sec:conclude}
+
+A aplicação de Visão Computacional para a automatização do processo de detecção
+de manchas solares gera uma ferramenta que objetiva facilitar o estudo do ciclo
+solar e suas influências na Terra, fornecendo subsídios relevantes para o
+estudo da previsão de clima espacial com a manipulação do numeroso acervo
+disponibilizado no Observatório SOHO.
+
+Ferramentas morfológicas para a detecção de manchas solares foram utilizadas para
+analisar e extrair características geométricas das imagens, dentre elas, as
+operações morfológicas de pré e pós processamento. Tais operações são baseadas
+na teoria dos conjuntos, sendo utilizadas neste trabalho as de abertura
+e \textit{bottom-hat} para o processamento da imagem. A
+operação de abertura foi utilizada para remover possíveis
+ruídos remanescente da imagem, após a aplicação do
+algoritmo de detecção de manchas. A transformada
+\textit{bottom-hat} foi utilizada para separar as manchas solares
+do fundo da imagem.
+
+Os resultados obtidos apresentaram robustez e
+demonstraram alta consistência com os resultados
+descritos por \citet{curto2008}. Além disso, a correlação com os dados
+divulgados pelos institutos NOAA e SIDC apontaram que
+o algoritmo Mack pode contribuir para a detecção
+automática de manchas solares.
+
+Uma dificuldade encontrada foi a determinação de falsos positivos ou
+negativos, tanto na detecção de manchas quanto no agrupamento. Tal fato
+indica a necessidade de acompanhamento de um profissional especializado
+em segmentação e agrupamento manual de manchas, para indicar em quais
+pontos o algoritmo falhou.
+
+Para futuros trabalhos, sugere-se avaliar a
+possibilidade de agrupamento de manchas analisando o
+fluxo magnético das manchas candidatas através do
+magnetograma, análise da área das manchas e média de
+intensidade de brilho, conforme apresentado por \citet{zharkov2004}.
+
+\vskip 0.5 truecm
+
+{\bf Agradecimentos}
+
+A.V\'alio gostaria de agradecer o suporte financeiro parcial da
+FAPESP (Funda\c c\~ao de Amparo \`a Pesquisa do Estado de
+S\~ao Paulo, Processo no. 2006/50654-3).
+
+%%%%%%%%%%%%%%% A SEÇÃO DE REFERÊNCIAS BIBLIOGRÁFICAS É MONTADA AUTOMATICAMENTE %%%%%%%%%%%%%
+% O arquivo de referências bibliográficas no padrão BIBTEX é carregado abaixo %(referencias.bib)
+
+\bibliography{sunspot}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SEÇÃO DE NOTAS BIOGRÁFICAS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Os dados biográficos de cada autor devem ser sucintos. Seguem alguns exemplos.
+%
+%\newpage
+\vfill \hrule
+\section*{Notas Biográficas}
+\small
+\noindent \textbf{Adílson Eduardo Spagiari} É formado em Engenharia
+Elétrica pelas Faculdades Associadas de São Paulo e atualmente é
+mestrando no curso de Pós Graduação em Engenharia Elétrica pela
+Universidade Presbiteriana Mackenzie. \\
+
+\vspace{10pt}\noindent \textbf{Israel Florentino dos Santos} É formado em
+Engenharia Elétrica pelas Faculdades Associadas de São Paulo e atualmente é
+mestrando no curso de Pós Graduação em Engenharia Elétrica pela
+Universidade Presbiteriana Mackenzie. \\
+
+\vspace{10pt}\noindent \textbf{Wander Lairson Costa} É formado em Engenharia
+Elétrica pelas Faculdades Associadas de São Paulo e atualmente é
+mestrando no curso de Pós Graduação em Engenharia Elétrica pela
+Universidade Presbiteriana Mackenzie.  \\
+
+\vspace{10pt}\noindent \textbf{Adriana Válio} Possui Bacharelado em Física
+pela Unicamp (1986), mestrado em Astronomia pela USP (1989) e pela University of
+California at Berkeley (1992), PhD em Astronomia pela University of California at
+Berkeley (1995) e Livre Docente pela Universidade de São Paulo (2008). Atualmente
+é professora adjunto da Universidade Presbiteriana Mackenzie e membro do corpo
+docente da Pós-Graduação em Engenharia da Universidade Presbiteriana Mackenzie e da
+Pós-Graduação em Astrofísica do INPE.  \\
+
+\vspace{10pt}\noindent \textbf{Maurício Marengoni} Engenheiro pelo Centro
+Universitário da FEI, mestre pelo Instituto de Pesquisas Espaciais (INPE) e pela
+Universidade de Rochester, NY-USA, doutorado pela Universidade de Massachusetts
+Amherst, MA-USA, e professor adjunto do Programa de Pós Graduação em Engenharia
+Elétrica da Universidade Presbiteriana Mackenzie desde 2004.  \\
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
